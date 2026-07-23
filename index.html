@@ -485,7 +485,6 @@ function applySyncConfig(){
             const all=[...remote.requests,...requests];
             const seen=new Set();requests=all.filter(x=>{if(seen.has(x.id))return false;seen.add(x.id);return true});
           }
-          if(remote.data){currentData=remote.data}
           saveData();renderTabs();renderApprovalPanel();renderTable();updateStats();
         }
         const c=btoa(unescape(encodeURIComponent(JSON.stringify({data:currentData,requests}))));
@@ -570,7 +569,6 @@ function initApp(){
           if(j.content){
             const r=JSON.parse(decodeURIComponent(escape(atob(j.content))));
             if(r.requests){const all=[...r.requests,...requests];const s=new Set();requests=all.filter(x=>{if(s.has(x.id))return false;s.add(x.id);return true})}
-            if(r.data){currentData=r.data}
             saveData();renderTabs();renderApprovalPanel();renderTable();updateStats()
           }
           const c=btoa(unescape(encodeURIComponent(JSON.stringify({data:currentData,requests}))));
