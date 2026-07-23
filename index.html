@@ -1046,6 +1046,7 @@ function toggleReport(){
   const sec=document.getElementById('reportSection');
   if(!reportVisible){sec.style.display='none';return}
   myStatsVisible=false;
+  sec.style.display='block';
   renderReport();
 }
 
