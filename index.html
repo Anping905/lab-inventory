@@ -696,7 +696,7 @@ function renderTable(){
   let hasVisible=false;
   let html='';
   items.forEach((x,i)=>{
-    const match=!s||JSON.stringify(x).toLowerCase().includes(s);
+    const match=!s||(x.name+' '+x.brand+' '+x.cat+' '+x.spec+' '+x.unit).toLowerCase().includes(s);
     if(match)hasVisible=true;
     const displayStyle=match?'':'style="display:none"';
     const low=x.stock>0&&x.stock<=5;
