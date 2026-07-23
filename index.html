@@ -385,31 +385,30 @@ let reportVisible = false;
 let syncConfig = null;
 let syncTimer = null;
 
-// ==================== NPONT.IO SYNC ====================
+// ==================== GITHUB SYNC ====================
+const GH_OWNER='Anping905',GH_REPO='lab-inventory',GH_FILE='sync-data.json';
 function loadSyncConfig(){
-  try{const s=localStorage.getItem('sync_npoint');if(s){const p=JSON.parse(s);if(p.url)syncConfig=p}}catch(e){}
+  try{const s=localStorage.getItem('gh_sync');if(s){const p=JSON.parse(s);if(p.token)syncConfig=p}}catch(e){}
 }
-function saveSyncConfig(){localStorage.setItem('sync_npoint',JSON.stringify(syncConfig))}
+function saveSyncConfig(){localStorage.setItem('gh_sync',JSON.stringify(syncConfig))}
 function clearSyncTimer(){if(syncTimer){clearInterval(syncTimer);syncTimer=null}}
 
 function openSyncSettings(){
   loadSyncConfig();
-  const cfg=syncConfig||{url:''};
-  document.getElementById('modalTitle').textContent='☁️ 同步设置（npoint.io）';
-  document.getElementById('modalSub').textContent='免费公开JSON存储，无需注册，一键上传下载';
+  const cfg=syncConfig||{token:''};
+  document.getElementById('modalTitle').textContent='☁️ 同步设置（GitHub）';
+  document.getElementById('modalSub').textContent='数据存储在 GitHub 仓库中，免费稳定';
   document.getElementById('modalStock').style.display='none';
   document.getElementById('modalExtraFields').innerHTML=`
     <div style="background:#e8f4f8;border-radius:8px;padding:10px;font-size:12px;color:#006daa;margin-bottom:12px;line-height:1.8">
-      📌 点击 <b>"创建新同步点"</b> 自动生成同步链接<br>
-      其他电脑填 <b>同一个链接</b> 即可共享数据<br>
-      如无法访问 npoint.io，请告诉我换成其他服务
+      📌 四台电脑填 <b>同一个 Token</b> 即可共享数据<br>
+      Token 仅保存在你自己的浏览器，不会泄露
     </div>
-    <label>同步链接（每一组数据用一个不同的链接）</label>
-    <input type="text" id="npUrl" value="${cfg.url}" placeholder="点"创建新同步点"自动生成" style="font-family:monospace">
+    <label>GitHub Token</label>
+    <input type="text" id="ghToken" value="${cfg.token}" placeholder="粘贴Token到此处" style="font-family:monospace;font-size:13px">
     <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-      <button class="btn btn-success btn-sm" onclick="createNpoint()" style="flex:1">🆕 创建新同步点</button>
-      <button class="btn btn-primary btn-sm" onclick="uploadNpoint()" style="flex:1">⬆️ 上传数据</button>
-      <button class="btn btn-warning btn-sm" onclick="downloadNpoint()" style="flex:1">⬇️ 下载数据</button>
+      <button class="btn btn-primary btn-sm" onclick="uploadToGitHub()" style="flex:1">⬆️ 上传数据</button>
+      <button class="btn btn-warning btn-sm" onclick="downloadFromGitHub()" style="flex:1">⬇️ 下载数据</button>
     </div>
     <div id="syncStatus" style="font-size:12px;color:#888;margin-top:8px;text-align:center"></div>
   `;
@@ -420,70 +419,73 @@ function openSyncSettings(){
   document.getElementById('modalOverlay').classList.add('show');
 }
 
-async function createNpoint(){
-  const status=document.getElementById('syncStatus');
-  status.textContent='⏳ 正在创建...';
-  try{
-    const data={data:currentData,requests,time:new Date().toISOString()};
-    const r=await fetch('https://api.npoint.io/',{
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(data)
-    });
-    if(!r.ok)throw new Error('创建失败 HTTP '+r.status);
-    const j=await r.json();
-    const url='https://api.npoint.io/'+j.id;
-    document.getElementById('npUrl').value=url;
-    syncConfig={url};saveSyncConfig();
-    status.textContent='✅ 已创建！同步链接已自动填入';
-    showToast('☁️ 同步点已创建');
-  }catch(e){status.textContent='❌ 创建失败：'+e.message;showToast('创建失败',true)}
+async function ghApi(method,path,token,body){
+  const opts={method,headers:{'Authorization':'token '+token,'Accept':'application/vnd.github.v3+json'}};
+  if(body){opts.headers['Content-Type']='application/json';opts.body=JSON.stringify(body)}
+  const r=await fetch('https://api.github.com'+path,opts);
+  const j=await r.json();
+  if(!r.ok)throw new Error(j.message||'HTTP '+r.status);
+  return j;
 }
 
-async function uploadNpoint(){
+async function uploadToGitHub(){
   const status=document.getElementById('syncStatus');
   status.textContent='⏳ 正在上传...';
   try{
-    const url=document.getElementById('npUrl').value.trim();
-    if(!url){status.textContent='❌ 请先创建同步点';return}
-    const data={data:currentData,requests,time:new Date().toISOString()};
-    const r=await fetch(url,{
-      method:'PUT',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify(data)
-    });
-    if(!r.ok)throw new Error('上传失败 HTTP '+r.status);
+    const token=document.getElementById('ghToken').value.trim();
+    if(!token){status.textContent='❌ 请填写 Token';return}
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify({data:currentData,requests,time:new Date().toISOString()}))));
+    // Try to update existing file first
+    try{
+      const existing=await ghApi('GET','/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,token);
+      await ghApi('PUT','/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,token,{message:'sync update',content,sha:existing.sha});
+    }catch(e){
+      if(e.message&&e.message.includes('Not Found')){
+        await ghApi('PUT','/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,token,{message:'sync create',content});
+      }else{throw e}
+    }
     status.textContent='✅ 上传成功！';
-    showToast('☁️ 数据已上传');
+    showToast('☁️ 数据已上传到 GitHub');
   }catch(e){status.textContent='❌ 上传失败：'+e.message;showToast('上传失败：'+e.message,true)}
 }
 
-async function downloadNpoint(){
+async function downloadFromGitHub(){
   const status=document.getElementById('syncStatus');
   status.textContent='⏳ 正在下载...';
   try{
-    const url=document.getElementById('npUrl').value.trim();
-    if(!url){status.textContent='❌ 请先填写或创建同步链接';return}
-    const r=await fetch(url);
-    if(!r.ok)throw new Error('下载失败 HTTP '+r.status);
-    const j=await r.json();
-    if(!j.data){status.textContent='❌ 数据格式不对';return}
-    currentData=j.data;requests=j.requests||[];
+    const token=document.getElementById('ghToken').value.trim();
+    if(!token){status.textContent='❌ 请填写 Token';return}
+    const j=await ghApi('GET','/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,token);
+    if(!j.content){status.textContent='❌ 云端没有数据';return}
+    const raw=decodeURIComponent(escape(atob(j.content)));
+    const p=JSON.parse(raw);
+    if(!p.data){status.textContent='❌ 数据格式不对';return}
+    currentData=p.data;requests=p.requests||[];
     saveData();
     renderTabs();renderApprovalPanel();renderTable();updateStats();
     status.textContent='✅ 下载成功！';
-    showToast('☁️ 数据已下载');
+    showToast('☁️ 数据已从 GitHub 恢复');
   }catch(e){status.textContent='❌ 下载失败：'+e.message;showToast('下载失败：'+e.message,true)}
 }
 
 function applySyncConfig(){
-  const url=document.getElementById('npUrl').value.trim();
-  if(!url){showToast('请先创建同步点',true);return}
-  syncConfig={url};saveSyncConfig();closeModal();
+  const token=document.getElementById('ghToken').value.trim();
+  if(!token){showToast('请填写 Token',true);return}
+  syncConfig={token};saveSyncConfig();closeModal();
   clearSyncTimer();
-  const data={data:currentData,requests,time:new Date().toISOString()};
-  fetch(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).catch(()=>{});
-  showToast('☁️ 同步已开启');
+  // Auto-save every 60s
+  syncTimer=setInterval(()=>{
+    if(!syncConfig)return;
+    const content=btoa(unescape(encodeURIComponent(JSON.stringify({data:currentData,requests}))));
+    (async()=>{
+      try{
+        const e=await ghApi('GET','/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,syncConfig.token).catch(()=>null);
+        await ghApi('PUT','/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,syncConfig.token,{message:'auto sync',content,sha:e?e.sha:undefined});
+      }catch(e){}
+    })();
+  },60000);
+  showToast('☁️ 自动同步已开启（每60秒一次）');
+  uploadToGitHub().catch(()=>{});
 }
 
 // ==================== AUTH ====================
