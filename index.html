@@ -1,0 +1,1110 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>华南中心实验物资库存管理系统</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Microsoft YaHei','PingFang SC',sans-serif;background:#f0f4f8;color:#333}
+
+/* Login */
+.login-page{display:flex;justify-content:center;align-items:center;min-height:100vh;background:linear-gradient(135deg,#003f72,#006daa,#4faad5)}
+.login-box{background:#fff;border-radius:20px;padding:40px;width:400px;max-width:90%;box-shadow:0 20px 60px rgba(0,0,0,0.3)}
+.login-box h1{font-size:24px;color:#003f72;text-align:center;margin-bottom:6px}
+.login-box .sub{text-align:center;color:#999;font-size:14px;margin-bottom:28px}
+.login-box label{display:block;font-size:14px;font-weight:bold;margin:14px 0 4px;color:#555}
+.login-box input{width:100%;padding:12px 14px;border:2px solid #d0d7de;border-radius:10px;font-size:15px;outline:none;transition:0.2s}
+.login-box input:focus{border-color:#006daa}
+.login-box .login-btn{width:100%;padding:12px;background:#006daa;color:#fff;border:none;border-radius:10px;font-size:16px;font-weight:bold;cursor:pointer;margin-top:24px;transition:0.2s}
+.login-box .login-btn:hover{background:#00568a}
+.login-box .error{color:#c0392b;font-size:13px;margin-top:10px;text-align:center;display:none}
+
+/* Header */
+.header{background:linear-gradient(135deg,#003f72,#006daa);color:#fff;padding:12px 24px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.header h1{font-size:20px}
+.header .user-info{display:flex;align-items:center;gap:12px}
+.header .user-info .role-tag{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:bold}
+.header .stats{display:flex;gap:12px;flex-wrap:wrap}
+.header .stat-item{background:rgba(255,255,255,0.15);padding:5px 12px;border-radius:8px;text-align:center}
+.header .stat-item .num{font-size:16px;font-weight:bold}
+.header .stat-item .label{font-size:11px;opacity:0.8}
+.btn-logout{background:rgba(255,255,255,0.2);border:none;color:#fff;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:13px}
+.btn-logout:hover{background:rgba(255,255,255,0.3)}
+.pending-badge{display:inline-flex;align-items:center;justify-content:center;background:#c0392b;color:#fff;border-radius:50%;width:22px;height:22px;font-size:12px;font-weight:bold}
+
+.container{max-width:1440px;margin:0 auto;padding:10px}
+.tabs{display:flex;gap:3px;margin-bottom:10px;flex-wrap:wrap}
+.tab{padding:7px 16px;border-radius:8px 8px 0 0;cursor:pointer;font-size:14px;font-weight:bold;background:#dde5ed;color:#555;border:none;transition:0.2s}
+.tab:hover{background:#c8d4e0}
+.tab.active{background:#006daa;color:#fff}
+.tab .badge{display:inline-block;background:rgba(0,0,0,0.15);border-radius:10px;padding:0 6px;font-size:11px;margin-left:4px}
+.tab.active .badge{background:rgba(255,255,255,0.25)}
+
+.toolbar{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap;align-items:center}
+.toolbar input{flex:1;min-width:160px;padding:7px 10px;border:2px solid #d0d7de;border-radius:8px;font-size:13px;outline:none}
+.toolbar input:focus{border-color:#006daa}
+.btn{padding:7px 14px;border:none;border-radius:8px;font-size:13px;cursor:pointer;font-weight:bold;transition:0.2s;display:inline-flex;align-items:center;gap:5px}
+.btn-sm{padding:4px 8px;font-size:12px}
+.btn-primary{background:#006daa;color:#fff}
+.btn-primary:hover{background:#00568a}
+.btn-success{background:#2e8b57;color:#fff}
+.btn-success:hover{background:#237044}
+.btn-danger{background:#c0392b;color:#fff}
+.btn-danger:hover{background:#a03022}
+.btn-warning{background:#e86c00;color:#fff}
+.btn-warning:hover{background:#c55d00}
+.btn-outline{background:#fff;color:#333;border:2px solid #d0d7de}
+.btn-outline:hover{background:#f0f4f8}
+.btn-ghost{background:transparent;color:#006daa;border:1px solid #006daa}
+.btn-ghost:hover{background:#e8f0f8}
+
+.table-wrap{background:#fff;border-radius:10px;overflow:auto;box-shadow:0 2px 8px rgba(0,0,0,0.06);max-height:62vh}
+table{width:100%;border-collapse:collapse;font-size:12px}
+thead th{background:#f7f9fb;padding:8px 6px;text-align:left;font-weight:bold;color:#555;border-bottom:2px solid #e4e9ef;white-space:nowrap;position:sticky;top:0;z-index:1}
+tbody td{padding:6px;border-bottom:1px solid #f0f2f5;vertical-align:middle}
+tbody tr:hover{background:#f7fafc}
+tbody tr.low-stock{background:#fff5f5}
+tbody tr.low-stock:hover{background:#ffe8e8}
+tbody tr.expired-row{background:#fff8f0}
+.num-cell{text-align:right;font-family:'Consolas',monospace}
+.actions{display:flex;gap:3px;flex-wrap:nowrap}
+.low-tag{display:inline-block;background:#c0392b;color:#fff;font-size:9px;padding:1px 4px;border-radius:3px}
+.expired-tag{display:inline-block;background:#e86c00;color:#fff;font-size:9px;padding:1px 4px;border-radius:3px}
+.batch-cell{font-size:11px;color:#666;max-width:100px}
+.expiry-cell{font-size:11px}
+.expiry-warning{color:#c0392b;font-weight:bold}
+.expiry-ok{color:#2e8b57}
+/* Grouped item rows */
+.item-group{background:#f7fafc;font-weight:bold}
+.item-group td{border-top:2px solid #d0d7de;padding:8px 6px}
+.item-group .group-name{font-size:14px;cursor:pointer;user-select:none}
+.item-group .group-name:hover{color:#006daa}
+.batch-sub td{font-size:11px;padding:4px 6px 4px 24px;background:#fafcfe;border-bottom:1px solid #eee}
+.batch-sub:hover{background:#f0f6fc}
+.batch-sub .num-cell{font-size:11px}
+.batch-sub .batch-label{color:#666}
+.toggle-icon{display:inline-block;width:16px;text-align:center;color:#999;font-size:11px}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.4);z-index:1000;justify-content:center;align-items:center}
+.modal-overlay.show{display:flex}
+.modal{background:#fff;border-radius:16px;padding:24px;max-width:520px;width:90%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.2)}
+.modal h2{font-size:20px;margin-bottom:4px;color:#003f72}
+.modal .sub{font-size:13px;color:#888;margin-bottom:12px}
+.modal label{display:block;font-size:13px;font-weight:bold;margin:8px 0 3px;color:#555}
+.modal input[type=number],.modal input[type=text],.modal input[type=date],.modal textarea,.modal select{width:100%;padding:7px 10px;border:2px solid #d0d7de;border-radius:8px;font-size:13px;outline:none;font-family:inherit}
+.modal input:focus,.modal select:focus{border-color:#006daa}
+.modal .btn-row{display:flex;gap:8px;margin-top:14px;justify-content:flex-end}
+.modal .current-stock{font-size:13px;color:#666;margin:6px 0;padding:6px 10px;background:#f7f9fb;border-radius:8px}
+.modal .form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.modal .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+.empty-state{text-align:center;padding:40px 20px;color:#999}
+.empty-state .icon{font-size:40px;margin-bottom:8px}
+.toast{position:fixed;bottom:24px;right:24px;background:#2e8b57;color:#fff;padding:10px 20px;border-radius:10px;font-size:14px;font-weight:bold;box-shadow:0 4px 16px rgba(0,0,0,0.2);z-index:2000;transform:translateY(80px);opacity:0;transition:0.3s}
+.toast.show{transform:translateY(0);opacity:1}
+.toast.error{background:#c0392b}
+
+/* Approval */
+.approval-panel{background:#fff;border-radius:10px;padding:14px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.approval-panel h3{font-size:15px;color:#003f72;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.request-card{display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:#f7fafc;border-radius:8px;margin-bottom:5px;border-left:4px solid #e86c00;flex-wrap:wrap;gap:6px}
+.request-card .info{flex:1;min-width:180px}
+.request-card .info .name{font-weight:bold;font-size:13px}
+.request-card .info .detail{font-size:12px;color:#888;margin-top:1px}
+.request-card .info .meta{font-size:11px;color:#aaa;margin-top:1px}
+.request-card .btns{display:flex;gap:5px;flex-shrink:0}
+
+/* Report */
+.report-section{margin-top:14px}
+.summary-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:12px}
+.summary-card{background:#fff;border-radius:10px;padding:14px;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.summary-card .num{font-size:24px;font-weight:bold;color:#003f72}
+.summary-card .label{font-size:12px;color:#888;margin-top:3px}
+.chart-card{background:#fff;border-radius:10px;padding:14px;box-shadow:0 2px 8px rgba(0,0,0,0.06);margin-bottom:10px}
+.chart-card h3{font-size:14px;color:#003f72;margin-bottom:8px}
+.supplier-tag{display:inline-block;background:#e8f0f8;color:#006daa;font-size:10px;padding:1px 5px;border-radius:3px;margin-left:3px}
+</style>
+</head>
+<body>
+
+<!-- Login Page -->
+<div class="login-page" id="loginPage">
+  <div class="login-box">
+    <h1>🧪 实验物资库存管理</h1>
+    <div class="sub">华南中心 · 请登录您的账号</div>
+    <label>账号</label>
+    <input type="text" id="loginUser" placeholder="请输入账号">
+    <label>密码</label>
+    <input type="password" id="loginPass" placeholder="请输入密码" onkeydown="if(event.key==='Enter')doLogin()">
+    <button class="login-btn" onclick="doLogin()">登 录</button>
+    <div class="error" id="loginError">账号或密码错误，请重试</div>
+  </div>
+</div>
+
+<!-- App -->
+<div id="app" style="display:none">
+<div class="header" id="appHeader">
+  <div>
+    <h1>🧪 华南中心实验物资库存管理</h1>
+    <div style="font-size:12px;opacity:0.7;margin-top:2px">支持批号/效期/供应商追踪 · 数据自动保存</div>
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+    <div class="stats" id="headerStats"></div>
+    <div class="user-info" id="userInfo">
+      <span class="role-tag" id="roleTag">管理员</span>
+      <span id="userName">admin</span>
+      <button class="btn-logout" onclick="doLogout()">退出</button>
+    </div>
+  </div>
+</div>
+
+<div class="container">
+  <div id="approvalPanel" style="display:none"></div>
+  <div class="tabs" id="tabBar"></div>
+  <div class="toolbar">
+    <input type="text" id="searchInput" placeholder="🔍 搜索名称、品牌、批号..." oninput="renderTable()">
+    <button class="btn btn-outline btn-sm" onclick="exportData()">📥 CSV</button>
+    <button class="btn btn-primary btn-sm" onclick="exportAll()">💾 导出</button>
+    <button class="btn btn-outline btn-sm" onclick="document.getElementById('importFile').click()">📂 导入</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importAll(event)">
+    <button class="btn btn-ghost btn-sm" id="syncBtn" onclick="openSyncSettings()">☁️ 同步设置</button>
+    <button class="btn btn-primary btn-sm" id="monthlyReportBtn" onclick="toggleReport()">📊 月度统计</button>
+    <button class="btn btn-outline btn-sm" id="myStatsBtn" onclick="toggleMyStats()" style="display:none">📋 我的领用</button>
+    <button class="btn btn-success btn-sm" id="newItemBtn" onclick="openNewItemModal()" style="display:none">➕ 新增物品</button>
+  </div>
+  <div class="table-wrap" id="tableWrap">
+    <table><thead id="thead"></thead><tbody id="tbody"></tbody></table>
+  </div>
+  <div id="reportSection" style="display:none"></div>
+</div>
+
+<!-- Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle"></h2>
+    <div class="sub" id="modalSub"></div>
+    <div class="current-stock" id="modalStock" style="display:none"></div>
+    <div id="modalExtraFields"></div>
+    <div class="btn-row">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn" id="modalConfirmBtn" onclick="confirmModal()"></button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+</div>
+
+<script>
+// ==================== ACCOUNTS ====================
+const ACCOUNTS = {
+  admin: { password:'admin123', role:'admin', name:'管理员' },
+  MSC: { password:'MSC-1', role:'team', name:'MSC组' },
+  ZXMY: { password:'ZXMY-2', role:'team', name:'造血免疫组' },
+  JCPT: { password:'JCPT-3', role:'team', name:'检测平台' },
+};
+
+// ==================== DATA ====================
+function mi(level,cat,name,brand,spec,unit,price,stock,loc,batch,expiry,supplier){
+  return{level,cat,name,brand,spec,unit,price,stock,total:+(price*stock).toFixed(2),loc,batch,expiry,supplier}
+}
+
+// 数据来源：华南中心实验物资库存情况统计表-20260722新整理
+const RAW_DATA = {};
+RAW_DATA.consumables = [
+  mi(1,"移液管","1mL 一次性移液管","NUNC","200支/包，5包/箱","包",119.60,10,"2A走廊","BB11001","2027-11-30","Thermo Fisher"),
+  mi(1,"移液管","25mL 移液管","NUNC","50支/包，4包/箱","包",112.50,72,"A210+2A走廊","BB07005","2027-07-31","Thermo Fisher"),
+  mi(1,"移液管","25mL 移液管","NUNC","50支/包 4包/箱","包",117.75,376,"A209","BB10005","2027-10-31","Thermo Fisher"),
+  mi(1,"移液管","25mL 移液管","NUNC","4包/箱","包",92.50,36,"A205-207","BB07005","2027-07-01","Thermo Fisher"),
+  mi(1,"移液管","10mL移液管","NUNC","100支/包，2包/箱","包",115.00,260,"A209(144)+A211(36)","BB09004","2027-09-30","Thermo Fisher"),
+  mi(2,"冻存管","2ml无菌冻存管","Thermo","25个/包 20包/箱","包",66.75,2245,"A210","1380510","2028-02-20","Thermo Fisher"),
+  mi(2,"冻存管","5ml无菌冻存管","Thermo","10个/包 25包/箱","包",26.68,475,"A210","1436451","2030-08-26","Thermo Fisher"),
+  mi(3,"离心管","15 mL离心管","NUNC","25个/包，20包/箱","包",31.50,1880,"A205-207","M5IF417117","2027-01-01","Thermo Fisher"),
+  mi(3,"离心管","50ml 离心管","NUNC","25个/包，12包/箱","包",34.17,852,"A205-207","LBJFA38119","2026-11-30","Thermo Fisher"),
+  mi(3,"离心管","500ml 离心管","耐思/NEST","6个/包，6包/箱","包",56.66,42,"2A通道","111825CZ01","2030-10-30","耐思生物"),
+  mi(3,"离心管","1.5mLEp管","Axygen","500个/盒","盒",49.86,0,"A211","29824962","2027-10-24","Axygen"),
+  mi(3,"离心管","5.0ml离心管 Biopur","Eppendorf","50个/盒独立包装","个",9.42,40,"A209","G171065G","2022-01-31","Eppendorf"),
+  mi(4,"手套","S一次性乳胶手套","光明","30双/盒，20盒/箱","盒",57.50,74,"A210","20200108","2023-01-07","光明"),
+  mi(4,"手套","M一次性乳胶手套","光明","30双/盒，20盒/箱","盒",25.00,208,"A210","20161003","2019-10-02","光明"),
+  mi(4,"手套","PE手套","光明","50包/箱，中码","包",3.40,31,"A209","20220927","","光明"),
+  mi(4,"手套","6.5号医用外科手套","麦迪康","50副/盒 8盒/箱","盒",122.50,332,"中试车间","5113005025","2027-12-30","麦迪康"),
+  mi(4,"手套","7.0号医用外科手套","麦迪康","50副/盒 8盒/箱","盒",122.50,188,"细胞工厂","5113005026","2027-12-30","麦迪康"),
+  mi(4,"纱布","外科纱布敷料（无菌纱布块）","华鑫","20袋/包，60包/箱","包",55.00,40,"A209","20251201","2027-12-01","华鑫"),
+  mi(4,"帽子","一次性实验用帽子","光明","20个/包 50包/箱","包",15.00,250,"A210","N/A","","光明"),
+  mi(4,"口罩","医用外科口罩","洛华","100个/包，30包/箱","包",40.00,16,"A210","20250605","2027-06-04","洛华"),
+  mi(5,"孔板","6孔细胞培养板","康宁","1个/包，50包/箱","包",8.97,50,"A210","18623601","2026-07-04","康宁"),
+  mi(5,"孔板","6孔细胞培养板","康宁","1个/包，50包/箱","包",8.73,250,"A210","32324601","2027-11-18","康宁"),
+  mi(5,"孔板","24孔细胞培养板","康宁","1个/包，100包/箱","包",9.18,200,"A210","30424601","2027-10-30","康宁"),
+  mi(5,"计数板","一次性细胞计数板","Watson","10片/盒","盒",250.00,15,"A209","5042","","Watson"),
+  mi(5,"盒子","5.0ml离心管储存盒","Eppendorf","5*5 4个/盒","盒",353.00,31,"A209","G171916J","","Eppendorf"),
+  mi(5,"盒子","2.0ml冻存管盒","Thermo","9*9 24盒/箱","个",52.40,8,"A208","N/A","","Thermo"),
+  mi(5,"盒子","5.0ml冻存管盒","Thermo","9*9 24盒/箱","个",62.84,40,"2A走廊","7252497010","","Thermo"),
+  mi(5,"盒子","5.0ml冻存管梯度降温盒","Thermo","1个/盒","盒",448.00,1,"2A走廊","7256358010","","Thermo"),
+  mi(5,"盒子","5.0ml冻存管盒","NUNC","24个/箱","箱",1457.00,14,"A205-207","N/A","","NUNC"),
+  mi(5,"盒子","2.0ml冻存管盒","NUNC","24个/箱","箱",1200.00,24,"A205-207","N/A","","NUNC"),
+  mi(6,"注射器","50ml一次性无菌注射器","上海双鸽","40支/盒","支",2.00,240,"A210","J251202","2028-11-28","上海双鸽"),
+  mi(7,"枪头","10μL白枪头","Axygen","10μL","盒",16.35,29,"A208","24018001","2021-08-27","Axygen"),
+  mi(7,"枪头","200μL黄枪头","Axygen","200μL 50盒/箱","盒",12.53,300,"A208","8524001","2027-03-25","Axygen"),
+  mi(7,"枪头","1000μL枪头（白色加长）","Axygen","8小盒/大盒","盒",25.71,200,"A208","15226001","2029-05-31","Axygen"),
+  mi(7,"滤器","40um细胞滤网","康宁","50个/箱","箱",695.00,2,"A210","232604","","康宁"),
+  mi(7,"滤器","100um细胞滤网","康宁","50个/箱","箱",600.00,10,"A210","246609","","康宁"),
+  mi(8,"培养器皿","T75细胞培养瓶（透气盖）","康宁","5个/包","包",38.40,12,"A208","6423601","2026-03-04","康宁"),
+  mi(8,"培养器皿","10cm细胞培养皿","Thermo","10个/包，24包/箱","包",22.92,43,"A210","60589506","2027-07-31","Thermo"),
+  mi(8,"培养器皿","250ml无菌瓶","Nalgene","60个/箱","箱",780.00,2,"A208","1354116","2027-05-09","Nalgene"),
+  mi(8,"流式管","塑料流式管","国产","500支/包，9包/箱","包",135.00,8,"A208","250316-03765","2030-03-15",""),
+  mi(9,"色带","黑色色带1（超低温保存色带）","美国贝迪","110mm*70M","卷",300.00,2,"A210","N/A","","美国贝迪"),
+  mi(9,"色带","黑色色带2（低温保存色带）","美国贝迪","110mm*70M","卷",250.00,3,"A210","N/A","","美国贝迪"),
+  mi(9,"标签","保护膜液氮试管标签","美国贝迪","B427 1000片/卷","卷",660.00,15,"A210","N/A","","美国贝迪"),
+  mi(9,"标签","EP管标签","美国贝迪","B6421 1000片/卷","卷",200.00,10,"A210","N/A","","美国贝迪"),
+  mi(9,"标签","冻存管架标签","美国贝迪","70mm*275mm 50片/卷","卷",400.00,7,"A210","N/A","","美国贝迪"),
+  mi(10,"辅助耗材","一次性加样槽","芯硅谷","5/包 40包/箱","箱",300.00,6,"A211","N/A","","芯硅谷"),
+  mi(10,"辅助耗材","封口膜","进口","PM996","卷",120.00,3,"A211","N/A","",""),
+  mi(10,"辅助耗材","蒸汽灭菌指示胶带","3M","20卷/箱","卷",80.00,12,"A210","N/A","","3M"),
+];
+
+RAW_DATA.reagents = [
+  {name:"生理盐水（100ml装）",brand:"四川科伦",spec:"100ml/瓶、120瓶/箱",unit:"袋",price:7.50,stock:120,total:900,loc:"",batch:"DA25101404",expiry:"2028-09-01",supplier:"四川科伦",note:""},
+  {name:"生理盐水（250ml/袋）",brand:"四川科伦",spec:"250mL/袋，40袋/箱",unit:"袋",price:8.00,stock:610,total:4880,loc:"",batch:"H24022307A",expiry:"2027-01-31",supplier:"四川科伦",note:""},
+  {name:"生理盐水（500ml/袋）",brand:"四川科伦",spec:"500mL/袋，30袋/箱",unit:"袋",price:8.50,stock:150,total:1275,loc:"",batch:"A25092503",expiry:"2028-08-31",supplier:"四川科伦",note:""},
+  {name:"生理盐水（500ml/袋）",brand:"四川科伦",spec:"500mL/袋，30袋/箱",unit:"袋",price:8.50,stock:600,total:5100,loc:"",batch:"D25081212",expiry:"2028-07-01",supplier:"四川科伦",note:""},
+  {name:"胰酪大豆胨琼脂培养基（90mm TSA）",brand:"米田亩",spec:"10个/包，17包/箱",unit:"包",price:55.00,stock:119,total:6545,loc:"",batch:"260408-1",expiry:"2027-01-07",supplier:"米田亩",note:""},
+  {name:"特级胎牛血清",brand:"赛业",spec:"500ml/瓶",unit:"瓶",price:7303.60,stock:5,total:36518,loc:"",batch:"T210326H501",expiry:"2026-03-25",supplier:"赛业",note:"已过期"},
+  {name:"琼脂粉",brand:"天扬生物",spec:"500g/包",unit:"包",price:36.00,stock:24,total:864,loc:"",batch:"N/A",expiry:"",supplier:"天扬生物",note:""},
+];
+
+RAW_DATA.supplies = [
+  {name:"生物安全垃圾袋",spec:"50个/扎",unit:"扎",price:148.50,stock:5,total:742.50,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"生物安全垃圾袋（小）",spec:"300×500mm 50个/扎",unit:"扎",price:125.00,stock:30,total:3750,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"黄色医疗废物垃圾袋（大）",spec:"无提手，100个/扎",unit:"扎",price:84.00,stock:27,total:2268,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"黄色医疗废物垃圾袋（有耳）",spec:"有提手，100个/扎",unit:"扎",price:42.50,stock:4,total:170,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"黑色生活垃圾袋（小）",spec:"48×30cm 50个/扎",unit:"扎",price:3.25,stock:59,total:191.75,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"黑色生活垃圾袋（大）",spec:"80cm×71cm",unit:"扎",price:11.50,stock:4,total:46,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"利尔康甲酚皂溶液",spec:"500ml，30瓶/箱",unit:"瓶",price:4.50,stock:60,total:270,loc:"A210",batch:"N/A",expiry:"",supplier:"利尔康"},
+  {name:"84消毒液",spec:"500ml，30瓶/箱",unit:"瓶",price:7.00,stock:107,total:749,loc:"A210",batch:"N/A",expiry:"",supplier:"利尔康"},
+  {name:"利尔康新洁尔灭",spec:"30瓶/箱、500 mL/瓶",unit:"瓶",price:10.00,stock:140,total:1400,loc:"A210",batch:"N/A",expiry:"",supplier:"利尔康"},
+  {name:"利尔康过氧化氢消毒液",spec:"30瓶/箱、500 mL/瓶",unit:"瓶",price:4.50,stock:60,total:270,loc:"A210",batch:"N/A",expiry:"",supplier:"利尔康"},
+  {name:"75%医用酒精",spec:"500ml/瓶，30瓶/箱",unit:"瓶",price:8.00,stock:210,total:1680,loc:"A211",batch:"N/A",expiry:"",supplier:"利尔康"},
+  {name:"天花板平拖把",spec:"",unit:"把",price:60.00,stock:8,total:480,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"平拖把配套拖布",spec:"",unit:"块",price:7.50,stock:19,total:142.50,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"平拖把配套拖布38*12",spec:"38*12",unit:"块",price:16.70,stock:21,total:350.70,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"无尘布",spec:"10块/包",unit:"块",price:8.40,stock:100,total:840,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"无尘拖把（替换布头）",spec:"60*17cm/块",unit:"块",price:100.00,stock:31,total:3100,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"实验记录本",spec:"",unit:"本",price:5.65,stock:18,total:101.70,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"连体服粉红 XL",spec:"粉红、XL",unit:"套",price:55.00,stock:120,total:6600,loc:"A208",batch:"N/A",expiry:"",supplier:""},
+  {name:"连体服蓝、2XL",spec:"蓝色 2XL",unit:"套",price:55.00,stock:10,total:550,loc:"",batch:"N/A",expiry:"",supplier:""},
+  {name:"铝箔纸",spec:"30cm×5m",unit:"盒",price:12.30,stock:14,total:172.20,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"锐器盒",spec:"5L",unit:"个",price:4.50,stock:15,total:67.50,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"减压阀",spec:"",unit:"个",price:150.00,stock:2,total:300,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+];
+
+RAW_DATA.uncommon = [
+  {name:"垃圾袋（生活用，小）",spec:"45×55cm",unit:"袋",price:2.50,stock:7,total:17.50,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"医疗脚踏垃圾桶",spec:"25L",unit:"个",price:58.00,stock:2,total:116,loc:"A208",batch:"N/A",expiry:"",supplier:""},
+  {name:"垃圾铲",spec:"",unit:"把",price:12.00,stock:2,total:24,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"方形筐",spec:"20×30×15",unit:"个",price:16.50,stock:5,total:82.50,loc:"A208",batch:"N/A",expiry:"",supplier:""},
+  {name:"脸盆",spec:"直径40cm",unit:"个",price:16.50,stock:6,total:99,loc:"A208",batch:"N/A",expiry:"",supplier:""},
+  {name:"试管刷（小）",spec:"刷2ML离心管",unit:"个",price:1.50,stock:11,total:16.50,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"试管刷（中）",spec:"刷250ML离心管",unit:"个",price:2.50,stock:9,total:22.50,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"试管刷（大）",spec:"刷3L烧杯",unit:"个",price:3.50,stock:8,total:28,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"自封袋（大）",spec:"34×24cm",unit:"个",price:0.23,stock:25,total:5.75,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"自封袋（小）",spec:"12×8.5cm",unit:"个",price:0.04,stock:264,total:10.56,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"棉手套（隔热）",spec:"隔热",unit:"双",price:5.70,stock:2,total:11.40,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"橡胶手套(M)",spec:"M",unit:"对",price:7.50,stock:7,total:52.50,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"耐酸手套",spec:"60CM",unit:"双",price:39.00,stock:1,total:39,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"棉线",spec:"16大卷+8小卷",unit:"卷",price:0.90,stock:286,total:257.40,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"粘尘垫",spec:"60×90cm 30页/本",unit:"本",price:17.00,stock:8,total:136,loc:"A208",batch:"N/A",expiry:"",supplier:""},
+  {name:"牛皮纸",spec:"",unit:"米",price:3.00,stock:7,total:21,loc:"A208",batch:"N/A",expiry:"",supplier:""},
+  {name:"活动扳手",spec:"长12寸",unit:"把",price:49.00,stock:2,total:98,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"防水围裙",spec:"",unit:"个",price:34.70,stock:1,total:34.70,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"防护面罩",spec:"",unit:"个",price:37.00,stock:2,total:74,loc:"A208",batch:"N/A",expiry:"",supplier:""},
+  {name:"挂烫机",spec:"GS42-BJ双杆",unit:"台",price:359.00,stock:1,total:359,loc:"A210",batch:"N/A",expiry:"",supplier:""},
+  {name:"袖套",spec:"36cm长",unit:"双",price:4.90,stock:2,total:9.80,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"衣架",spec:"10个/包",unit:"包",price:5.90,stock:2,total:11.80,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"打火机",spec:"",unit:"个",price:0.67,stock:20,total:13.40,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"分体服女L",spec:"女、L",unit:"套",price:90.00,stock:3,total:270,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"分体服男XL",spec:"男、XL",unit:"套",price:90.00,stock:1,total:90,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"浅绿实验服（男冬L）",spec:"男冬、L",unit:"套",price:80.00,stock:21,total:1680,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"浅绿实验服（男冬XL）",spec:"男冬、XL",unit:"套",price:80.00,stock:21,total:1680,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"浅绿实验服（男冬XXL）",spec:"男冬、XXL",unit:"套",price:80.00,stock:10,total:800,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"浅绿实验服（男夏M）",spec:"男夏、M",unit:"套",price:70.00,stock:7,total:490,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"浅绿实验服（男夏L）",spec:"男夏、L",unit:"套",price:70.00,stock:20,total:1400,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"浅绿实验服（男夏XL）",spec:"男夏、XL",unit:"套",price:70.00,stock:20,total:1400,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"浅绿实验服（女夏M）",spec:"女夏、M",unit:"套",price:70.00,stock:5,total:350,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"浅蓝实验服（男冬M）",spec:"男冬、M",unit:"套",price:80.00,stock:2,total:160,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"浅蓝实验服（男冬L）",spec:"男冬、L",unit:"套",price:80.00,stock:4,total:320,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"浅蓝实验服（女冬M）",spec:"女冬、M",unit:"套",price:80.00,stock:7,total:560,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"浅蓝实验服（女冬L）",spec:"女冬、L",unit:"套",price:80.00,stock:8,total:640,loc:"A209",batch:"N/A",expiry:"",supplier:""},
+  {name:"拖鞋女式37",spec:"女式37",unit:"双",price:10.00,stock:1,total:10,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"拖鞋男式41",spec:"男式41",unit:"双",price:10.00,stock:4,total:40,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"拖鞋男式42",spec:"男式42",unit:"双",price:10.00,stock:5,total:50,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"拖鞋男式43",spec:"男式43",unit:"双",price:10.00,stock:1,total:10,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"拖鞋男式44",spec:"男式44",unit:"双",price:10.00,stock:10,total:100,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"军鞋",spec:"",unit:"双",price:57.00,stock:1,total:57,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"0.22微孔滤膜",spec:"0.22μm",unit:"盒",price:60.50,stock:4,total:242,loc:"",batch:"20150312",expiry:"",supplier:"金晶"},
+  {name:"0.45微孔滤膜",spec:"0.45μm",unit:"盒",price:60.50,stock:4,total:242,loc:"2A货架",batch:"20150115",expiry:"",supplier:"金晶"},
+  {name:"15离心管架",spec:"15mL",unit:"个",price:10.00,stock:14,total:140,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"大载玻片盒",spec:"大号",unit:"个",price:12.00,stock:8,total:96,loc:"2A货架",batch:"N/A",expiry:"",supplier:""},
+  {name:"Ep管盒",spec:"",unit:"个",price:6.00,stock:6,total:36,loc:"2A货架",batch:"N/A",expiry:"",supplier:""},
+  {name:"接种棒",spec:"",unit:"根",price:6.50,stock:7,total:45.50,loc:"2A货架",batch:"N/A",expiry:"",supplier:""},
+  {name:"涂布棒",spec:"",unit:"根",price:3.00,stock:18,total:54,loc:"2A货架",batch:"N/A",expiry:"",supplier:""},
+  {name:"盖玻片",spec:"25×50mm",unit:"盒",price:15.00,stock:8,total:120,loc:"2A货架",batch:"14002",expiry:"2015-08-31",supplier:"世泰"},
+  {name:"血球计数板",spec:"",unit:"块",price:45.00,stock:1,total:45,loc:"2A货架",batch:"N/A",expiry:"",supplier:""},
+  {name:"洗耳球",spec:"大",unit:"个",price:3.60,stock:7,total:25.20,loc:"A210",batch:"N/A",expiry:"",supplier:""},
+  {name:"滴管胶头（小）",spec:"",unit:"个",price:0.70,stock:218,total:152.60,loc:"A210",batch:"N/A",expiry:"",supplier:""},
+  {name:"滴管胶头（大）",spec:"",unit:"个",price:1.00,stock:46,total:46,loc:"A210",batch:"N/A",expiry:"",supplier:""},
+  {name:"不锈钢细胞筛网（带柄）",spec:"100目",unit:"个",price:70.00,stock:87,total:6090,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"10mL玻璃量筒",spec:"10mL",unit:"个",price:6.00,stock:10,total:60,loc:"A211",batch:"N/A",expiry:"",supplier:""},
+  {name:"50mL玻璃量筒",spec:"50mL",unit:"个",price:6.50,stock:5,total:32.50,loc:"2A货架",batch:"N/A",expiry:"",supplier:""},
+  {name:"100mL玻璃烧杯",spec:"100mL",unit:"个",price:5.00,stock:1,total:5,loc:"A211",batch:"N/A",expiry:"",supplier:"蜀牛"},
+  {name:"50mL玻璃容量瓶",spec:"50mL",unit:"个",price:6.50,stock:10,total:65,loc:"2A货架",batch:"N/A",expiry:"",supplier:""},
+  {name:"玻璃棒",spec:"20cm",unit:"根",price:4.40,stock:38,total:167.20,loc:"A211",batch:"N/A",expiry:"",supplier:"博美"},
+  {name:"老鼠笼",spec:"",unit:"个",price:200.00,stock:2,total:400,loc:"2A货架",batch:"N/A",expiry:"",supplier:""},
+];
+
+
+// ==================== STATE ====================
+const CATEGORIES = [
+  {key:'consumables',label:'耗材',icon:'🧫'},
+  {key:'reagents',label:'试剂',icon:'🧪'},
+  {key:'supplies',label:'基础物资',icon:'📦'},
+  {key:'uncommon',label:'不常用物资',icon:'🗂️'},
+];
+
+let currentUser = null;
+let currentTab = 'consumables';
+let currentData = {};
+let requests = [];
+let modalMode = 'in';
+let modalItem = null;
+let modalIdx = -1;
+let chartInstance = null;
+let reportVisible = false;
+let syncConfig = null;
+let syncTimer = null;
+
+// ==================== NPONT.IO SYNC ====================
+function loadSyncConfig(){
+  try{const s=localStorage.getItem('sync_npoint');if(s){const p=JSON.parse(s);if(p.url)syncConfig=p}}catch(e){}
+}
+function saveSyncConfig(){localStorage.setItem('sync_npoint',JSON.stringify(syncConfig))}
+function clearSyncTimer(){if(syncTimer){clearInterval(syncTimer);syncTimer=null}}
+
+function openSyncSettings(){
+  loadSyncConfig();
+  const cfg=syncConfig||{url:''};
+  document.getElementById('modalTitle').textContent='☁️ 同步设置（npoint.io）';
+  document.getElementById('modalSub').textContent='免费公开JSON存储，无需注册，一键上传下载';
+  document.getElementById('modalStock').style.display='none';
+  document.getElementById('modalExtraFields').innerHTML=`
+    <div style="background:#e8f4f8;border-radius:8px;padding:10px;font-size:12px;color:#006daa;margin-bottom:12px;line-height:1.8">
+      📌 点击 <b>"创建新同步点"</b> 自动生成同步链接<br>
+      其他电脑填 <b>同一个链接</b> 即可共享数据<br>
+      如无法访问 npoint.io，请告诉我换成其他服务
+    </div>
+    <label>同步链接（每一组数据用一个不同的链接）</label>
+    <input type="text" id="npUrl" value="${cfg.url}" placeholder="点"创建新同步点"自动生成" style="font-family:monospace">
+    <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-success btn-sm" onclick="createNpoint()" style="flex:1">🆕 创建新同步点</button>
+      <button class="btn btn-primary btn-sm" onclick="uploadNpoint()" style="flex:1">⬆️ 上传数据</button>
+      <button class="btn btn-warning btn-sm" onclick="downloadNpoint()" style="flex:1">⬇️ 下载数据</button>
+    </div>
+    <div id="syncStatus" style="font-size:12px;color:#888;margin-top:8px;text-align:center"></div>
+  `;
+  const btn=document.getElementById('modalConfirmBtn');
+  btn.textContent='✅ 保存设置并开启自动同步';
+  btn.className='btn btn-primary';
+  modalMode='syncConfig';
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+async function createNpoint(){
+  const status=document.getElementById('syncStatus');
+  status.textContent='⏳ 正在创建...';
+  try{
+    const data={data:currentData,requests,time:new Date().toISOString()};
+    const r=await fetch('https://api.npoint.io/',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(data)
+    });
+    if(!r.ok)throw new Error('创建失败 HTTP '+r.status);
+    const j=await r.json();
+    const url='https://api.npoint.io/'+j.id;
+    document.getElementById('npUrl').value=url;
+    syncConfig={url};saveSyncConfig();
+    status.textContent='✅ 已创建！同步链接已自动填入';
+    showToast('☁️ 同步点已创建');
+  }catch(e){status.textContent='❌ 创建失败：'+e.message;showToast('创建失败',true)}
+}
+
+async function uploadNpoint(){
+  const status=document.getElementById('syncStatus');
+  status.textContent='⏳ 正在上传...';
+  try{
+    const url=document.getElementById('npUrl').value.trim();
+    if(!url){status.textContent='❌ 请先创建同步点';return}
+    const data={data:currentData,requests,time:new Date().toISOString()};
+    const r=await fetch(url,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(data)
+    });
+    if(!r.ok)throw new Error('上传失败 HTTP '+r.status);
+    status.textContent='✅ 上传成功！';
+    showToast('☁️ 数据已上传');
+  }catch(e){status.textContent='❌ 上传失败：'+e.message;showToast('上传失败：'+e.message,true)}
+}
+
+async function downloadNpoint(){
+  const status=document.getElementById('syncStatus');
+  status.textContent='⏳ 正在下载...';
+  try{
+    const url=document.getElementById('npUrl').value.trim();
+    if(!url){status.textContent='❌ 请先填写或创建同步链接';return}
+    const r=await fetch(url);
+    if(!r.ok)throw new Error('下载失败 HTTP '+r.status);
+    const j=await r.json();
+    if(!j.data){status.textContent='❌ 数据格式不对';return}
+    currentData=j.data;requests=j.requests||[];
+    saveData();
+    renderTabs();renderApprovalPanel();renderTable();updateStats();
+    status.textContent='✅ 下载成功！';
+    showToast('☁️ 数据已下载');
+  }catch(e){status.textContent='❌ 下载失败：'+e.message;showToast('下载失败：'+e.message,true)}
+}
+
+function applySyncConfig(){
+  const url=document.getElementById('npUrl').value.trim();
+  if(!url){showToast('请先创建同步点',true);return}
+  syncConfig={url};saveSyncConfig();closeModal();
+  clearSyncTimer();
+  const data={data:currentData,requests,time:new Date().toISOString()};
+  fetch(url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(data)}).catch(()=>{});
+  showToast('☁️ 同步已开启');
+}
+
+// ==================== AUTH ====================
+function doLogin(){
+  const u=document.getElementById('loginUser').value.trim();
+  const p=document.getElementById('loginPass').value.trim();
+  const e=document.getElementById('loginError');
+  if(ACCOUNTS[u]&&ACCOUNTS[u].password===p){
+    currentUser={id:u,...ACCOUNTS[u]};e.style.display='none';
+    document.getElementById('loginPage').style.display='none';
+    document.getElementById('app').style.display='block';initApp();
+  }else{e.style.display='block'}
+}
+function doLogout(){
+  currentUser=null;
+  document.getElementById('app').style.display='none';
+  document.getElementById('loginPage').style.display='flex';
+  document.getElementById('loginUser').value='';
+  document.getElementById('loginPass').value='';
+  document.getElementById('loginError').style.display='none';
+}
+
+// ==================== MIGRATION ====================
+function migrateToBatches(data){
+  ['consumables','reagents','supplies','uncommon'].forEach(key=>{
+    const items=data[key];if(!items||!items.length)return;
+    const map={};
+    items.forEach(item=>{
+      const n=item.name;
+      if(!map[n])map[n]={level:item.level||99,cat:item.cat||'',name:n,brand:item.brand||'',spec:item.spec||'',unit:item.unit||'',stock:0,total:0,batches:[]};
+      const g=map[n];const q=item.stock||0;const p=item.price||0;
+      g.stock+=q;g.total+=+(q*p).toFixed(2);
+      g.batches.push({qty:q,price:p,batch:item.batch||'',expiry:item.expiry||'',loc:item.loc||'',supplier:item.supplier||'',note:item.note||''});
+    });
+    data[key]=Object.values(map);
+  });
+}
+
+function clearAllLocations(data){
+  ['consumables','reagents','supplies','uncommon'].forEach(key=>{
+    (data[key]||[]).forEach(item=>{
+      delete item.loc;
+      (item.batches||[]).forEach(b=>{delete b.loc});
+    });
+  });
+}
+
+// ==================== INIT ====================
+function initApp(){
+  const s=localStorage.getItem('lab_inv_v5');
+  if(s){try{    const p=JSON.parse(s);currentData=p.data;requests=p.requests||[];if(!currentData.consumables[0].batches)migrateToBatches(currentData);clearAllLocations(currentData)}catch(e){resetData()}}
+  else{resetData()}
+  const isAdmin=currentUser.role==='admin';
+  document.getElementById('roleTag').textContent=isAdmin?'管理员':'项目组';
+  document.getElementById('roleTag').style.background=isAdmin?'#e86c00':'#2e8b57';
+  document.getElementById('userName').textContent=currentUser.name;
+  document.getElementById('userInfo').className='user-info '+(isAdmin?'role-admin':'role-team');
+  document.getElementById('approvalPanel').style.display=isAdmin?'block':'none';
+  document.getElementById('monthlyReportBtn').style.display=isAdmin?'':'none';
+  document.getElementById('myStatsBtn').style.display=isAdmin?'none':'';
+  document.getElementById('newItemBtn').style.display=isAdmin?'':'none';
+  renderTabs();renderApprovalPanel();renderTable();updateStats();
+  reportVisible=false;document.getElementById('reportSection').style.display='none';
+  // Load sync config and start auto-sync
+  loadSyncConfig();
+  if(syncConfig){
+    clearSyncTimer();
+    syncTimer=setInterval(()=>{
+      fetch(syncConfig.url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:currentData,requests})}).catch(()=>{});
+    },60000);
+  }
+}
+
+function resetData(){
+  currentData=JSON.parse(JSON.stringify(RAW_DATA));
+  migrateToBatches(currentData);
+  clearAllLocations(currentData);
+  requests=[];saveData();
+}
+
+function saveData(){
+  localStorage.setItem('lab_inv_v5',JSON.stringify({data:currentData,requests}));
+}
+
+// ==================== REFRESH APPROVAL ====================
+function refreshApproval(){
+  const s=localStorage.getItem('lab_inv_v5');
+  if(s){try{const p=JSON.parse(s);requests=p.requests||[]}catch(e){}}
+  renderApprovalPanel();
+  showToast('已刷新审批列表');
+}
+
+// ==================== NEW ITEM (Admin) ====================
+function openNewItemModal(){
+  modalMode='newItem';modalItem=null;modalIdx=-1;
+  document.getElementById('modalTitle').textContent='➕ 新增物品';
+  document.getElementById('modalSub').textContent='填写信息后添加到当前分类';
+  document.getElementById('modalStock').style.display='none';
+  document.getElementById('modalExtraFields').innerHTML=`
+    <label>所属分类（将加到当前标签页）</label>
+    <input type="text" id="niCat" placeholder="如：移液管、手套、孔板..." value="">
+    <label>物品名称 *</label>
+    <input type="text" id="niName" placeholder="如：0.6mL Ep管">
+    <div class="form-row">
+      <div><label>品牌</label><input type="text" id="niBrand" placeholder="品牌"></div>
+      <div><label>货号</label><input type="text" id="niSpec" placeholder="规格/货号"></div>
+    </div>
+    <div class="form-row">
+      <div><label>单位 *</label><input type="text" id="niUnit" placeholder="个/包/盒/箱" value="个"></div>
+      <div><label>单价 (¥) *</label><input type="number" id="niPrice" step="0.01" min="0" value="0"></div>
+    </div>
+    <div class="form-row">
+      <div><label>数量 *</label><input type="number" id="niQty" min="0" value="1"></div>
+      <div><label>存放地点</label><input type="text" id="niLoc" placeholder="如：A210"></div>
+    </div>
+    <div class="form-row">
+      <div><label>批号</label><input type="text" id="niBatch" placeholder="批号"></div>
+      <div><label>效期</label><input type="date" id="niExpiry"></div>
+    </div>
+    <label>供应商</label>
+    <input type="text" id="niSupplier" placeholder="供应商名称">
+  `;
+  const btn=document.getElementById('modalConfirmBtn');
+  btn.textContent='✅ 确认新增';btn.className='btn btn-success';
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+// ==================== APPROVAL ====================
+function renderApprovalPanel(){
+  const p=document.getElementById('approvalPanel');
+  if(currentUser.role!=='admin'){p.style.display='none';return}
+  p.style.display='block';
+  const pending=requests.filter(r=>r.status==='pending');
+  if(pending.length===0){
+    p.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0"><span style="color:#888;font-size:14px">✅ 暂无待审批的领用申请</span><button class="btn btn-outline btn-sm" onclick="refreshApproval()">🔄 刷新</button></div>';return
+  }
+  p.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <h3 style="font-size:15px;color:#003f72;display:flex;align-items:center;gap:8px">📋 待审批领用申请 <span class="pending-badge">${pending.length}</span></h3>
+    <button class="btn btn-outline btn-sm" onclick="refreshApproval()">🔄 刷新</button>
+  </div>
+    ${pending.map(r=>`<div class="request-card">
+      <div class="info">
+        <div class="name">${r.teamName} — ${r.itemName} <span class="supplier-tag">批号:${r.itemBatch||'N/A'}</span></div>
+        <div class="detail">领用 <b>${r.qty}</b> ${r.itemUnit}${r.reason?'（'+r.reason+'）':''}</div>
+        <div class="meta">${r.date} ${r.time}</div>
+      </div>
+      <div class="btns">
+        <button class="btn btn-success btn-sm" onclick="approveReq(${r.id})">✅ 批准</button>
+        <button class="btn btn-danger btn-sm" onclick="rejectReq(${r.id})">❌ 拒绝</button>
+      </div>
+    </div>`).join('')}`;
+}
+function approveReq(id){
+  const r=requests.find(x=>x.id===id);if(!r)return;
+  r.status='approved';r.approvedDate=new Date().toISOString().slice(0,10);
+  const items=currentData[r.itemKey];
+  if(items&&items[r.itemIdx]!==undefined){
+    const item=items[r.itemIdx];
+    const b=item.batches.find(x=>x.batch===r.itemBatch);
+    if(b){b.qty-=r.qty;if(b.qty<0)b.qty=0}
+    item.stock=item.batches.reduce((s,x)=>s+x.qty,0);
+    item.total=+item.batches.reduce((s,x)=>s+x.qty*x.price,0).toFixed(2);
+  }
+  saveData();renderApprovalPanel();renderTable();updateStats();
+  showToast(`✅ 已批准：${r.teamName} 领用 ${r.itemName} × ${r.qty}`);
+}
+function rejectReq(id){
+  const r=requests.find(x=>x.id===id);if(!r)return;
+  r.status='rejected';saveData();renderApprovalPanel();
+  showToast('已拒绝领用申请');
+}
+
+// ==================== TABS ====================
+function renderTabs(){
+  document.getElementById('tabBar').innerHTML=CATEGORIES.map(c=>
+    `<button class="tab ${currentTab===c.key?'active':''}" onclick="switchTab('${c.key}')">
+      ${c.icon} ${c.label} <span class="badge">${(currentData[c.key]||[]).length}</span>
+    </button>`
+  ).join('');
+}
+function switchTab(k){currentTab=k;renderTabs();renderTable()}
+
+// ==================== HELPERS ====================
+function parseDate(s){
+  if(!s)return null;
+  const d=new Date(s.replace(/\//g,'-').trim());
+  return isNaN(d.getTime())?null:d;
+}
+function daysUntilExpiry(expiry){
+  const d=parseDate(expiry);return d?Math.ceil((d-new Date())/(864e5)):null;
+}
+
+// ==================== TABLE (Grouped by name, batches as sub-rows) ====================
+function renderTable(){
+  const s=document.getElementById('searchInput').value.trim().toLowerCase();
+  const items=currentData[currentTab]||[];
+  const isAdmin=currentUser.role==='admin';
+  const thead=document.getElementById('thead');
+  const tbody=document.getElementById('tbody');
+
+  thead.innerHTML='<tr><th>#</th><th>名称 / 批次明细</th><th>品牌</th><th>规格</th><th>单位</th><th style="text-align:right">总库存</th><th style="text-align:right">总价值</th><th>操作</th></tr>';
+
+  if(items.length===0){
+    tbody.innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="icon">📭</div><div>没有匹配的物资</div></div></td></tr>';
+    return;
+  }
+
+  let hasVisible=false;
+  let html='';
+  items.forEach((x,i)=>{
+    const match=!s||JSON.stringify(x).toLowerCase().includes(s);
+    if(match)hasVisible=true;
+    const displayStyle=match?'':'style="display:none"';
+    const low=x.stock>0&&x.stock<=5;
+    const toggleId='tg'+currentTab+i;
+    const activeBatches=x.batches.filter(b=>b.qty>0);
+    // Main group row
+    html+=`<tr class="item-group ${low?'low-stock':''}" ${displayStyle} data-ridx="${i}">
+      <td>${i+1}</td>
+      <td class="group-name" onclick="toggleBatches('${toggleId}')">
+        <span class="toggle-icon" id="${toggleId}_icon">▶</span>
+        <strong>${x.name}</strong>${low?'<span class="low-tag">库存不足</span>':''}
+      </td>
+      <td>${x.brand||''}</td>
+      <td style="font-size:11px;max-width:150px">${x.spec||''}</td>
+      <td>${x.unit||''}</td>
+      <td class="num-cell"><strong>${x.stock}</strong></td>
+      <td class="num-cell">¥${x.total.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')}</td>
+      <td class="actions">
+        ${isAdmin
+          ? `<button class="btn btn-success btn-sm" onclick="openModal('in',${i})">+入库</button>
+             ${x.stock===0?'':`<button class="btn btn-ghost btn-sm" onclick="openModal('request',${i})">📝 领用</button>`}`
+          : (x.stock===0?'<span style="font-size:11px;color:#999">无库存</span>'
+             :`<button class="btn btn-ghost btn-sm" onclick="openModal('request',${i})">📝 领用</button>`)}
+      </td>
+    </tr>`;
+    // Batch sub-rows
+    html+=`<tbody id="${toggleId}" style="display:none">`;
+    activeBatches.forEach((b,j)=>{
+      const days=daysUntilExpiry(b.expiry);
+      const nearExp=days!==null&&days>0&&days<=90;
+      html+=`<tr class="batch-sub${nearExp?' expired-row':''}">
+        <td></td>
+        <td><span class="batch-label">└ 批次${j+1}：</span>${b.batch||'—'} ${b.expiry?`<span class="${nearExp?'expiry-warning':'expiry-ok'}">${b.expiry}</span>`:''}${nearExp?` <span class="expired-tag">${days}天</span>`:''}</td>
+        <td colspan="2"><span class="batch-label">供应商：</span>${b.supplier||'—'} ${b.price>0?`| ¥${b.price.toFixed(2)}/${x.unit}`:'| 赠品'}</td>
+        <td></td>
+        <td class="num-cell"><span class="batch-label">数量：</span>${b.qty}</td>
+        <td class="num-cell"><span class="batch-label">金额：</span>¥${(b.qty*b.price).toFixed(0)}</td>
+        <td></td>
+      </tr>`;
+    });
+    html+=`</tbody>`;
+  });
+  if(!hasVisible){
+    tbody.innerHTML='<tr><td colspan="8"><div class="empty-state"><div class="icon">🔍</div><div>没有找到匹配的物资</div></div></td></tr>';
+  }else{
+    tbody.innerHTML=html;
+  }
+}
+
+function toggleBatches(id){
+  const tbody=document.getElementById(id);
+  const icon=document.getElementById(id+'_icon');
+  if(tbody.style.display==='none'){
+    tbody.style.display='table-row-group';
+    icon.textContent='▼';
+  }else{
+    tbody.style.display='none';
+    icon.textContent='▶';
+  }
+}
+
+// ==================== MODAL ====================
+function openModal(mode,idx){
+  const items=currentData[currentTab];
+  if(!items||idx<0||idx>=items.length)return;
+  modalMode=mode;modalIdx=idx;modalItem=items[idx];
+  document.getElementById('modalStock').style.display='block';
+
+  if(mode==='in'){
+    const lastBatch=modalItem.batches.length>0?modalItem.batches[modalItem.batches.length-1]:{};
+    document.getElementById('modalTitle').textContent='📥 入库';
+    document.getElementById('modalSub').textContent=`${modalItem.name} | ${modalItem.brand||''} ${modalItem.spec||''}`;
+    document.getElementById('modalStock').textContent=`当前总库存：${modalItem.stock} ${modalItem.unit||''}（${modalItem.batches.filter(b=>b.qty>0).length}个批次）`;
+    document.getElementById('modalExtraFields').innerHTML=`
+      <div class="form-row">
+        <div><label>入库数量</label><input type="number" id="modalQty" min="1" value="1"></div>
+        <div><label>单价 (¥)（赠品填0）</label><input type="number" id="modalPrice" step="0.01" min="0" value="${lastBatch.price||0}"></div>
+      </div>
+      <div class="form-row">
+        <div><label>批号</label><input type="text" id="modalBatch" placeholder="新批号（留空归入默认）"></div>
+        <div><label>效期</label><input type="date" id="modalExpiry"></div>
+      </div>
+      <div class="form-row">
+        <div><label>存放地点</label><input type="text" id="modalLoc" value="${lastBatch.loc||modalItem.batches[0]?.loc||''}"></div>
+        <div><label>供应商</label><input type="text" id="modalSupplier" value="${lastBatch.supplier||''}"></div>
+      </div>
+      <label>备注</label><input type="text" id="modalReason" placeholder="批次说明">
+    `;
+    const btn=document.getElementById('modalConfirmBtn');
+    btn.textContent='✅ 确认入库';btn.className='btn btn-success';
+  }else if(mode==='request'){
+    const batchOpts=modalItem.batches.filter(b=>b.qty>0).map((b,i)=>`<option value="${i}">${b.batch||'默认'}（余${b.qty}，¥${b.price.toFixed(2)}）</option>`).join('');
+    document.getElementById('modalTitle').textContent='📝 申请领用';
+    document.getElementById('modalSub').textContent=`${modalItem.name} | ${modalItem.brand||''} ${modalItem.spec||''}`;
+    document.getElementById('modalStock').textContent=`当前总库存：${modalItem.stock} ${modalItem.unit||''}`;
+    document.getElementById('modalExtraFields').innerHTML=`
+      <label>选择批次</label>
+      <select id="modalBatchSelect">${batchOpts}</select>
+      <label>申请数量</label><input type="number" id="modalQty" min="1" value="1">
+      <label>用途说明</label><textarea id="modalReason" rows="3" placeholder="请说明用途"></textarea>
+    `;
+    // Dynamic max based on batch selection
+    const qtyInput=document.getElementById('modalQty');
+    setTimeout(()=>{
+      const sel=document.getElementById('modalBatchSelect');
+      if(sel)sel.onchange=()=>{
+        const bi=parseInt(sel.value);
+        qtyInput.max=modalItem.batches.filter(b=>b.qty>0)[bi]?.qty||modalItem.stock;
+      };
+      sel.onchange();
+    },50);
+    const btn=document.getElementById('modalConfirmBtn');
+    btn.textContent='📤 提交申请';btn.className='btn btn-primary';
+  }
+  document.getElementById('modalOverlay').classList.add('show');
+}
+
+function closeModal(){
+  document.getElementById('modalOverlay').classList.remove('show');
+}
+
+function confirmModal(){
+  // ---- Sync Config ----
+  if(modalMode==='syncConfig'){applySyncConfig();return}
+
+  // ---- New Item ----
+  if(modalMode==='newItem'){
+    const cat=document.getElementById('niCat').value.trim();
+    const name=document.getElementById('niName').value.trim();
+    const brand=document.getElementById('niBrand').value.trim();
+    const spec=document.getElementById('niSpec').value.trim();
+    const unit=document.getElementById('niUnit').value.trim()||'个';
+    const price=parseFloat(document.getElementById('niPrice').value);
+    const qty=parseInt(document.getElementById('niQty').value)||0;
+    const loc=document.getElementById('niLoc').value.trim();
+    const batch=document.getElementById('niBatch').value.trim()||'N/A';
+    const expiry=document.getElementById('niExpiry').value;
+    const supplier=document.getElementById('niSupplier').value.trim();
+    if(!name){showToast('请填写物品名称',true);return}
+    if(price<0){showToast('请输入有效价格',true);return}
+    const items=currentData[currentTab];
+    const item={level:99,cat:cat||'其他',name,brand,spec,unit,stock:qty,total:+(price*qty).toFixed(2),batches:[{qty,price,batch:batch||'默认',expiry:expiry||'',loc:loc||'',supplier:supplier||'',note:''}]};
+    items.push(item);
+    saveData();closeModal();renderTabs();renderTable();updateStats();
+    showToast(`✅ 已新增：${name}`);
+    return;
+  }
+
+  // ---- Inbound (batches structure) ----
+  if(modalMode==='in'){
+    const qty=parseInt(document.getElementById('modalQty').value);
+    const price=parseFloat(document.getElementById('modalPrice').value);
+    const batch=document.getElementById('modalBatch').value.trim();
+    const expiry=document.getElementById('modalExpiry').value;
+    const loc=document.getElementById('modalLoc').value.trim();
+    const supplier=document.getElementById('modalSupplier').value.trim();
+    if(!qty||qty<1||price<0){showToast('请填写有效数量',true);return}
+    const item=currentData[currentTab][modalIdx];
+    // Check if batch exists in this item
+    if(batch){
+      const eb=item.batches.find(b=>b.batch===batch);
+      if(eb){
+        eb.qty+=qty;eb.price=price;
+        if(expiry)eb.expiry=expiry;
+        if(loc)eb.loc=loc;
+        if(supplier)eb.supplier=supplier;
+        showToast(`✅ 入库成功：${item.name} 批次 ${batch} +${qty}`);
+      }else{
+        item.batches.push({qty,price,batch,expiry:expiry||'',loc:loc||'',supplier:supplier||'',note:''});
+        showToast(`✅ 入库成功：${item.name} 新批次 ${batch} +${qty}`);
+      }
+    }else{
+      // No batch → add to first batch or create default
+      const def=item.batches.find(b=>!b.batch||b.batch==='N/A'||b.batch==='默认');
+      if(def){
+        def.qty+=qty;def.price=price;
+        showToast(`✅ 入库成功：${item.name}（默认批次）+${qty}`);
+      }else{
+        item.batches.push({qty,price,batch:'默认',expiry:expiry||'',loc:loc||'',supplier:supplier||'',note:''});
+        showToast(`✅ 入库成功：${item.name}（新建默认批次）`);
+      }
+    }
+    // Recalculate totals
+    item.stock=item.batches.reduce((s,b)=>s+b.qty,0);
+    item.total=+item.batches.reduce((s,b)=>s+b.qty*b.price,0).toFixed(2);
+    saveData();closeModal();renderTabs();renderTable();updateStats();return;
+  }
+
+  // ---- Request (batch-aware) ----
+  if(modalMode==='request'){
+    const bi=parseInt(document.getElementById('modalBatchSelect').value);
+    const qty=parseInt(document.getElementById('modalQty').value);
+    const reason=document.getElementById('modalReason').value.trim();
+    if(!qty||qty<1){showToast('请输入有效数量',true);return}
+    if(!reason){showToast('请填写用途说明',true);return}
+    const item=currentData[currentTab][modalIdx];
+    const activeBatches=item.batches.filter(b=>b.qty>0);
+    const selBatch=activeBatches[bi];
+    if(!selBatch||qty>selBatch.qty){showToast('该批次库存不足',true);return}
+    const isAdmin=currentUser.role==='admin';
+    const req={
+      id:Date.now(),userId:currentUser.id,teamName:currentUser.name,
+      itemKey:currentTab,itemIdx:modalIdx,itemName:item.name,
+      itemSpec:item.spec||'',itemUnit:item.unit||'',
+      itemBatch:selBatch.batch||'默认',qty,reason,
+      status:isAdmin?'approved':'pending',
+      date:new Date().toISOString().slice(0,10),
+      time:new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'}),
+      approvedDate:isAdmin?new Date().toISOString().slice(0,10):null,
+    };
+    if(isAdmin){
+      selBatch.qty-=qty;
+      if(selBatch.qty<0)selBatch.qty=0;
+      item.stock=item.batches.reduce((s,b)=>s+b.qty,0);
+      item.total=+item.batches.reduce((s,b)=>s+b.qty*b.price,0).toFixed(2);
+    }
+    requests.push(req);
+    saveData();closeModal();renderApprovalPanel();renderTable();updateStats();
+    showToast(isAdmin?`✅ 领用成功：${item.name} -${qty}`:'📤 申请已提交，等待审批');
+    return;
+  }
+}
+
+// ==================== STATS ====================
+function updateStats(){
+  let totalValue=0,totalItems=0,lowStock=0,nearExp=0;
+  ['consumables','reagents','supplies','uncommon'].forEach(k=>{
+    (currentData[k]||[]).forEach(i=>{
+      totalValue+=i.total||0;totalItems+=i.stock;
+      if(i.stock>0&&i.stock<=5)lowStock++;
+      (i.batches||[]).forEach(b=>{
+        const d=daysUntilExpiry(b.expiry);
+        if(d!==null&&d>0&&d<=90)nearExp++;
+      });
+    });
+  });
+  const pc=requests.filter(r=>r.status==='pending').length;
+  document.getElementById('headerStats').innerHTML=`
+    <div class="stat-item"><div class="num">¥${totalValue.toFixed(0).replace(/\B(?=(\d{3})+(?!\d))/g,',')}</div><div class="label">库存总价值</div></div>
+    <div class="stat-item"><div class="num">${totalItems}</div><div class="label">总库存数量</div></div>
+    <div class="stat-item"><div class="num" style="color:#ff6b6b">${lowStock}</div><div class="label">⚠️ 不足</div></div>
+    <div class="stat-item"><div class="num" style="color:#e86c00">${nearExp}</div><div class="label">⏰ 近效期</div></div>
+    ${pc?`<div class="stat-item"><div class="num" style="color:#ffd700">${pc}</div><div class="label">⏳ 待批</div></div>`:''}`;
+}
+
+// ==================== REPORT (Admin) ====================
+function renderReport(){
+  const sec=document.getElementById('reportSection');
+  const approved=requests.filter(r=>r.status==='approved');
+  const byMonth={},byTeam={};
+  approved.forEach(r=>{const m=(r.approvedDate||r.date).slice(0,7);if(!byMonth[m])byMonth[m]=[];byMonth[m].push(r);if(!byTeam[r.teamName])byTeam[r.teamName]=[];byTeam[r.teamName].push(r)});
+  const months=Object.keys(byMonth).sort().reverse(),teams=Object.keys(byTeam);
+  sec.innerHTML=`
+    <div class="report-section">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px">
+        <h3 style="color:#003f72;font-size:17px">📊 月度领用统计</h3>
+        <button class="btn btn-outline btn-sm" onclick="exportReport()">📥 导出统计CSV</button>
+      </div>
+      <div class="summary-cards">
+        <div class="summary-card"><div class="num">${approved.length}</div><div class="label">领用次数</div></div>
+        <div class="summary-card"><div class="num">${approved.reduce((s,r)=>s+r.qty,0)}</div><div class="label">领用总数</div></div>
+        <div class="summary-card"><div class="num">${teams.length}</div><div class="label">项目组数</div></div>
+        <div class="summary-card"><div class="num">${months.length||0}</div><div class="label">月份数</div></div>
+      </div>
+      <div class="chart-card"><h3>📅 各月领用明细</h3>
+        <table style="width:100%;font-size:12px"><thead><tr><th>月份</th><th>次数</th><th>总数量</th><th>物资</th></tr></thead>
+        <tbody>${months.length?months.map(m=>{const l=byMonth[m];return `<tr><td>${m}</td><td>${l.length}</td><td>${l.reduce((s,r)=>s+r.qty,0)}</td><td style="font-size:11px">${[...new Set(l.map(r=>r.itemName))].join('、')}</td></tr>`}).join(''):'<tr><td colspan="4" style="text-align:center;color:#999;padding:16px">暂无</td></tr>'}</tbody></table>
+      </div>
+      <div class="chart-card"><h3>👥 项目组领用</h3>
+        <table style="width:100%;font-size:12px"><thead><tr><th>项目组</th><th>次数</th><th>总数量</th></tr></thead>
+        <tbody>${teams.length?teams.map(t=>`<tr><td>${t}</td><td>${byTeam[t].length}</td><td>${byTeam[t].reduce((s,r)=>s+r.qty,0)}</td></tr>`).join(''):'<tr><td colspan="3" style="text-align:center;color:#999;padding:16px">暂无</td></tr>'}</tbody></table>
+      </div>
+      <div class="chart-card"><h3>📈 月度趋势</h3><canvas id="reportChart" style="max-height:260px"></canvas></div>
+    </div>`;
+  if(chartInstance){try{chartInstance.destroy()}catch(e){}}
+  if(months.length>0){
+    const labels=[...months].reverse(),counts=labels.map(m=>byMonth[m].reduce((s,r)=>s+r.qty,0));
+    chartInstance=new Chart(document.getElementById('reportChart'),{type:'line',data:{labels,datasets:[{label:'领用总数',data:counts,borderColor:'#006daa',backgroundColor:'rgba(0,109,170,0.1)',fill:true,tension:0.3,pointBackgroundColor:'#006daa',pointRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,title:{display:true,text:'数量'}}}}});
+  }
+}
+
+// ==================== MY STATS (project team) ====================
+let myStatsVisible=false;
+function toggleMyStats(){
+  myStatsVisible=!myStatsVisible;
+  const sec=document.getElementById('reportSection');
+  if(!myStatsVisible){sec.style.display='none';return}
+  reportVisible=false;
+  const myReqs=requests.filter(r=>r.userId===currentUser.id);
+  const approved=myReqs.filter(r=>r.status==='approved');
+  const pending=myReqs.filter(r=>r.status==='pending');
+  const rejected=myReqs.filter(r=>r.status==='rejected');
+  const byMonth={};
+  approved.forEach(r=>{const m=(r.approvedDate||r.date).slice(0,7);if(!byMonth[m])byMonth[m]=[];byMonth[m].push(r)});
+  const months=Object.keys(byMonth).sort().reverse();
+  sec.style.display='block';
+  sec.innerHTML=`
+    <div class="report-section">
+      <h3 style="color:#003f72;font-size:17px;margin-bottom:10px">📋 ${currentUser.name} 领用记录</h3>
+      <div class="summary-cards">
+        <div class="summary-card"><div class="num">${approved.length}</div><div class="label">已批准</div></div>
+        <div class="summary-card"><div class="num">${pending.length}</div><div class="label">⏳ 待审批</div></div>
+        <div class="summary-card"><div class="num">${rejected.length}</div><div class="label">已拒绝</div></div>
+        <div class="summary-card"><div class="num">${approved.reduce((s,r)=>s+r.qty,0)}</div><div class="label">领用总数</div></div>
+      </div>
+      <div class="chart-card"><h3>📋 全部申请记录</h3>
+        <table style="width:100%;font-size:12px"><thead><tr><th>日期</th><th>物品</th><th>数量</th><th>用途</th><th>状态</th></tr></thead>
+        <tbody>${myReqs.length?[...myReqs].reverse().map(r=>`<tr>
+          <td>${r.date}</td><td>${r.itemName}</td><td>${r.qty} ${r.itemUnit||''}</td>
+          <td style="font-size:11px">${r.reason||''}</td>
+          <td>${r.status==='approved'?'✅ 已批准':r.status==='rejected'?'❌ 已拒绝':'⏳ 待审批'}</td>
+        </tr>`).join(''):'<tr><td colspan="5" style="text-align:center;color:#999;padding:16px">暂无领用记录</td></tr>'}</tbody></table>
+      </div>
+      ${months.length?`
+      <div class="chart-card"><h3>📈 各月领用数量</h3><canvas id="myStatsChart" style="max-height:260px"></canvas></div>
+      `:''}
+    </div>`;
+  if(chartInstance){try{chartInstance.destroy()}catch(e){}}
+  if(months.length>0){
+    const labels=[...months].reverse(),counts=labels.map(m=>byMonth[m].reduce((s,r)=>s+r.qty,0));
+    chartInstance=new Chart(document.getElementById('myStatsChart'),{type:'line',data:{labels,datasets:[{label:'领用数量',data:counts,borderColor:'#2e8b57',backgroundColor:'rgba(46,139,87,0.1)',fill:true,tension:0.3,pointBackgroundColor:'#2e8b57',pointRadius:4}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,title:{display:true,text:'数量'}}}}});
+  }
+}
+function toggleReport(){
+  reportVisible=!reportVisible;
+  const sec=document.getElementById('reportSection');
+  if(!reportVisible){sec.style.display='none';return}
+  myStatsVisible=false;
+  renderReport();
+}
+
+// ==================== EXPORT REPORT ====================
+function exportReport(){
+  const approved=requests.filter(r=>r.status==='approved');
+  if(!approved.length){showToast('暂无领用数据可导出',true);return}
+  const byMonth={};
+  approved.forEach(r=>{const m=(r.approvedDate||r.date).slice(0,7);if(!byMonth[m])byMonth[m]=[];byMonth[m].push(r)});
+  const months=Object.keys(byMonth).sort();
+  let csv='\uFEFF月份,项目组,物品名称,批号,数量,用途,申请日期,批准日期\n';
+  months.forEach(m=>{
+    byMonth[m].sort((a,b)=>a.teamName.localeCompare(b.teamName)).forEach(r=>{
+      csv+=`"${m}","${r.teamName}","${r.itemName}","${r.itemBatch||''}",${r.qty},"${r.reason||''}","${r.date}","${r.approvedDate||''}"\n`;
+    });
+  });
+  // Summary rows
+  csv+='\n汇总,,总计,,数量,,\n';
+  months.forEach(m=>{
+    const total=byMonth[m].reduce((s,r)=>s+r.qty,0);
+    csv+=`"${m}","",,,"${total}",,\n`;
+  });
+  const teams=[...new Set(approved.map(r=>r.teamName))];
+  csv+='\n项目组统计,,总计,,数量,,\n';
+  teams.forEach(t=>{
+    const list=approved.filter(r=>r.teamName===t);
+    const total=list.reduce((s,r)=>s+r.qty,0);
+    csv+=`"${t}","",,,"${total}",,\n`;
+  });
+  const b=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download=`月度领用统计_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  URL.revokeObjectURL(a.href);showToast('✅ 统计已导出');
+}
+
+// ==================== EXPORT / IMPORT ALL DATA ====================
+function exportAll(){
+  const data={data:currentData,requests,exportTime:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);
+  a.download=`库存数据全量备份_${new Date().toISOString().slice(0,10)}.json`;a.click();
+  URL.revokeObjectURL(a.href);showToast('✅ 全部数据已导出');
+}
+function importAll(event){
+  const file=event.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const p=JSON.parse(e.target.result);
+      if(!p.data||!p.requests){showToast('文件格式不对',true);return}
+      if(!p.data.consumables[0]?.batches){showToast('数据版本不兼容',true);return}
+      currentData=p.data;requests=p.requests;
+      saveData();
+      renderTabs();renderApprovalPanel();renderTable();updateStats();
+      showToast('✅ 数据导入成功');
+    }catch(err){showToast('导入失败：'+err.message,true)}
+  };
+  reader.readAsText(file);
+  event.target.value='';
+}
+
+// ==================== TOAST & EXPORT ====================
+function showToast(msg,err){
+  const e=document.getElementById('toast');
+  e.textContent=msg;e.className='toast show'+(err?' error':'');
+  setTimeout(()=>e.classList.remove('show'),2500);
+}
+function exportData(){
+  const items=currentData[currentTab]||[];
+  if(!items.length){showToast('暂无数据',true);return}
+  let csv='\uFEFF物品名称,品牌,规格,单位,批次,数量,单价,金额,效期,存放地点,供应商\n';
+  items.forEach(i=>{
+    (i.batches||[{qty:i.stock,price:0,batch:'',expiry:'',loc:'',supplier:''}]).forEach(b=>{
+      csv+=`"${i.name}","${i.brand||''}","${i.spec||''}","${i.unit||''}","${b.batch||''}",${b.qty},${b.price},${(b.qty*b.price).toFixed(2)},"${b.expiry||''}","${b.loc||''}","${b.supplier||''}"\n`;
+    });
+  });
+  const b=new Blob([csv],{type:'text/csv;charset=utf-8;'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(b);
+  a.download=`${currentTab}_${new Date().toISOString().slice(0,10)}.csv`;a.click();
+  URL.revokeObjectURL(a.href);showToast('✅ 已导出');
+}
+</script>
+</body>
+</html>
