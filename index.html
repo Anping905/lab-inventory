@@ -473,18 +473,26 @@ function applySyncConfig(){
   if(!token){showToast('请填写 Token',true);return}
   syncConfig={token};saveSyncConfig();closeModal();
   clearSyncTimer();
-  // Auto-save every 60s
+  // Auto-sync every 60s: download then upload
   syncTimer=setInterval(()=>{
     if(!syncConfig)return;
-    const content=btoa(unescape(encodeURIComponent(JSON.stringify({data:currentData,requests}))));
     (async()=>{
       try{
+        const j=await ghApi('GET','/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,syncConfig.token);
+        if(j.content){
+          const remote=JSON.parse(decodeURIComponent(escape(atob(j.content))));
+          if(remote.data&&remote.requests){
+            currentData=remote.data;requests=remote.requests;
+            saveData();renderTabs();renderApprovalPanel();renderTable();updateStats();
+          }
+        }
+        const c=btoa(unescape(encodeURIComponent(JSON.stringify({data:currentData,requests}))));
         const e=await ghApi('GET','/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,syncConfig.token).catch(()=>null);
-        await ghApi('PUT','/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,syncConfig.token,{message:'auto sync',content,sha:e?e.sha:undefined});
+        await ghApi('PUT','/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,syncConfig.token,{message:'auto sync',content:c,sha:e?e.sha:undefined});
       }catch(e){}
     })();
   },60000);
-  showToast('☁️ 自动同步已开启（每60秒一次）');
+  showToast('☁️ 自动同步已开启（每60秒先下载再上传）');
   uploadToGitHub().catch(()=>{});
 }
 
@@ -554,7 +562,18 @@ function initApp(){
   if(syncConfig){
     clearSyncTimer();
     syncTimer=setInterval(()=>{
-      fetch(syncConfig.url,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify({data:currentData,requests})}).catch(()=>{});
+      (async()=>{
+        try{
+          const j=await ghApi('GET','/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,syncConfig.token);
+          if(j.content){
+            const r=JSON.parse(decodeURIComponent(escape(atob(j.content))));
+            if(r.data&&r.requests){currentData=r.data;requests=r.requests;saveData();renderTabs();renderApprovalPanel();renderTable();updateStats()}
+          }
+          const c=btoa(unescape(encodeURIComponent(JSON.stringify({data:currentData,requests}))));
+          const e=await ghApi('GET','/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,syncConfig.token).catch(()=>null);
+          await ghApi('PUT','/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,syncConfig.token,{message:'auto sync',content:c,sha:e?e.sha:undefined});
+        }catch(e){}
+      })();
     },60000);
   }
 }
