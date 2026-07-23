@@ -485,7 +485,7 @@ function applySyncConfig(){
           const remote=JSON.parse(decodeURIComponent(escape(atob(j.content))));
           if(remote.requests){
             const all=[...remote.requests,...requests];
-            const map={};all.forEach(x=>{if(!map[x.id]||x.status==='approved')map[x.id]=x});
+            const map={};all.forEach(x=>{if(!map[x.id]||x.status!=='pending')map[x.id]=x});
             requests=Object.values(map);
           }
           saveData();renderTabs();renderApprovalPanel();renderTable();updateStats();
@@ -571,7 +571,7 @@ function initApp(){
           const j=await ghApi('GET','/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,syncConfig.token);
           if(j.content){
             const r=JSON.parse(decodeURIComponent(escape(atob(j.content))));
-            if(r.requests){const all=[...r.requests,...requests];const m={};all.forEach(x=>{if(!m[x.id]||x.status==='approved')m[x.id]=x});requests=Object.values(m)}
+            if(r.requests){const all=[...r.requests,...requests];const m={};all.forEach(x=>{if(!m[x.id]||x.status!=='pending')m[x.id]=x});requests=Object.values(m)}
             saveData();renderTabs();renderApprovalPanel();renderTable();updateStats()
           }
           const c=btoa(unescape(encodeURIComponent(JSON.stringify({data:currentData,requests}))));
