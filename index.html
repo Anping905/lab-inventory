@@ -912,7 +912,7 @@ function confirmModal(){
     const qty=parseInt(document.getElementById('modalQty').value);
     const reason=document.getElementById('modalReason').value.trim();
     if(!qty||qty<1){showToast('请输入有效数量',true);return}
-    if(!reason){showToast('请填写用途说明',true);return}
+
     const item=currentData[currentTab][modalIdx];
     const activeBatches=item.batches.filter(b=>b.qty>0);
     const selBatch=activeBatches[bi];
