@@ -428,11 +428,12 @@ async function ghApi(method,path,token,body){
   return j;
 }
 
-async function uploadToGitHub(){
+async function uploadToGitHub(token){
   const status=document.getElementById('syncStatus');
   status.textContent='⏳ 正在上传...';
   try{
-    const token=document.getElementById('ghToken').value.trim();
+    if(!token&&syncConfig)token=syncConfig.token;
+    if(!token&&document.getElementById('ghToken'))token=document.getElementById('ghToken').value.trim();
     if(!token){status.textContent='❌ 请填写 Token';return}
     const content=btoa(unescape(encodeURIComponent(JSON.stringify({data:currentData,requests,time:new Date().toISOString()}))));
     // Try to update existing file first
@@ -449,11 +450,12 @@ async function uploadToGitHub(){
   }catch(e){status.textContent='❌ 上传失败：'+e.message;showToast('上传失败：'+e.message,true)}
 }
 
-async function downloadFromGitHub(){
+async function downloadFromGitHub(token){
   const status=document.getElementById('syncStatus');
   status.textContent='⏳ 正在下载...';
   try{
-    const token=document.getElementById('ghToken').value.trim();
+    if(!token&&syncConfig)token=syncConfig.token;
+    if(!token&&document.getElementById('ghToken'))token=document.getElementById('ghToken').value.trim();
     if(!token){status.textContent='❌ 请填写 Token';return}
     const j=await ghApi('GET','/repos/'+GH_OWNER+'/'+GH_REPO+'/contents/'+GH_FILE,token);
     if(!j.content){status.textContent='❌ 云端没有数据';return}
